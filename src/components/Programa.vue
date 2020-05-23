@@ -42,13 +42,14 @@
       </tbody>
       </table>
       <div style="text-align:right;padding-top:4px;">
-      <a-pagination
-        :total="5"
-        :pageSize="1"
+       <a-pagination
+        :total="total"
+        :pageSize="pagesize"
         :defaultCurrent="1"
         :style="{display:'inline-block'}"
+         @change="onChange"
       />
-      <span :style="{height:'30px',display:'inline-block',lineHeight:'30px',position:'relative',top:'-11px',padding:'0 2px'}">共5页</span>
+      <span :style="{height:'30px',display:'inline-block',lineHeight:'30px',position:'relative',top:'-11px',padding:'0 2px'}">共{{Math.ceil(total/pagesize)}}页</span>
       </div>
     </div>
     <a-modal
@@ -117,8 +118,9 @@ export default {
     return {
         list:[1,2,3,4,5],
         checked:true,
-        page:1,
-        pagesize:5,
+        total:1,
+        page: 1,
+        pagesize:10,
         taskList:[],
         visible1:false,  //添加
         visible2:false,  //删除
@@ -234,12 +236,13 @@ export default {
         page:this.page,
         pagesize:this.pagesize
       }
-     this.$http.post('/admin/task_class/taskClassList',{},{
+     this.$http.post('/admin/task_class/taskClassList',data,{
        headers:{token}
      }).then(res=>{
        console.log(res)
        if(res.data.code==200){
          this.taskList=res.data.data.task_class;
+         this.total=res.data.data.total
        }else{
          this.$message.warning(res.data.msg)
        }
@@ -248,8 +251,9 @@ export default {
     handleChange(value) {
       console.log(`selected ${value}`);
     },
-    onChange(checked) {
-        this.checked=checked
+    onChange(e) {
+         this.page = e;
+      this.fetchData();
       }
   }
 };

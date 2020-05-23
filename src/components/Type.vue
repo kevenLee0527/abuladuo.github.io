@@ -40,12 +40,13 @@
       </table>
       <div style="text-align:right;padding-top:4px;">
       <a-pagination
-        :total="5"
-        :pageSize="1"
+        :total="total"
+        :pageSize="pagesize"
         :defaultCurrent="1"
         :style="{display:'inline-block'}"
+         @change="onChange"
       />
-      <span :style="{height:'30px',display:'inline-block',lineHeight:'30px',position:'relative',top:'-11px',padding:'0 2px'}">共5页</span>
+      <span :style="{height:'30px',display:'inline-block',lineHeight:'30px',position:'relative',top:'-11px',padding:'0 2px'}">共{{Math.ceil(total/pagesize)}}页</span>
       </div>
        <a-modal
       title="添加"
@@ -138,7 +139,10 @@ export default {
           sort:'',
           task_type_id:''
         },
-        task_type_id:''
+        task_type_id:'',
+        total:1,
+        page: 1,
+        pagesize:10
     };
   },
   watch: {
@@ -200,15 +204,23 @@ export default {
       })
     },
     fetchData() {
+      let data={
+        pagesize:this.pagesize,
+        page:this.page
+      }
       this.$http
-      .post("/admin/task_type/taskTypeList", {},{
+      .post("/admin/task_type/taskTypeList", data,{
         headers: {
             'token': token
         }
       })
       .then(res => {
+        console.log(res)
         if (res.data.code == 200||res.data.code=="200") {
-          this.list=res.data.data.task_type
+          this.list=res.data.data.task_type;
+          this.total=res.data.data.total;
+        }else{
+           this.$message.warning(res.data.msg)
         }
       })
       .catch(err => {
@@ -255,6 +267,10 @@ export default {
       this.visible1=false;
       this.visible2=false;
       this.visible3=false
+    },
+    onChange(e) {
+      this.page = e;
+      this.fetchData();
     }
   }
 };

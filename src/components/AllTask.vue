@@ -230,7 +230,7 @@ export default {
       page: 1,
       pagesize: 10,
       keyword: "",
-      total: 0
+      total: 1
     };
   },
   watch: {
