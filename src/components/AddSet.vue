@@ -56,16 +56,15 @@
           </tbody>
         </table>
         <div style="text-align:right;padding-top:4px;">
-          <a-pagination
-            :total="5"
-            :pageSize="1"
-            :defaultCurrent="1"
-            :style="{display:'inline-block'}"
-          />
-          <span
-            :style="{height:'30px',display:'inline-block',lineHeight:'30px',position:'relative',top:'-11px',padding:'0 2px'}"
-          >共5页</span>
-        </div>
+       <a-pagination
+        :total="total"
+        :pageSize="pagesize"
+        :defaultCurrent="1"
+        :style="{display:'inline-block'}"
+         @change="onChange"
+      />
+      <span :style="{height:'30px',display:'inline-block',lineHeight:'30px',position:'relative',top:'-11px',padding:'0 2px'}">共{{Math.ceil(total/pagesize)}}页</span>
+      </div>
       </div>
     </div> 
     <a-modal  :title="title" v-model="visible"   @ok="handleOk" okText="确定" cancelText="取消">
@@ -152,7 +151,10 @@ export default {
       // group_id:'',
       authGroupList: [],
       defaultGroup: "",
-      visible2:false
+      visible2: false,
+      page: 1,
+      pagesize: 10,
+      total: 1
     };
   },
   watch: {
@@ -170,32 +172,38 @@ export default {
     this.getAuthGroupList();
   },
   methods: {
-    handleCancel(){
-      this.visible2=false
+    handleCancel() {
+      this.visible2 = false;
     },
     // 删除
-    onConfirm(){
-       let token = sessionStorage.getItem("token");
-       let id=this.adminId
-      this.$http.post('/admin/admin_user/delete',{id},{
-        headers:{
-          token
-        }
-      }).then(res=>{
-        // console.log(res)
-         if (res.data.code == 200) {
-              this.visible2 = false;
-              this.$message.success("删除成功");
-              this.fetchData(token);
-            } else {
-              this.$message.warning(res.data.msg);
+    onConfirm() {
+      let token = sessionStorage.getItem("token");
+      let id = this.adminId;
+      this.$http
+        .post(
+          "/admin/admin_user/delete",
+          { id },
+          {
+            headers: {
+              token
             }
-      })
+          }
+        )
+        .then(res => {
+          // console.log(res)
+          if (res.data.code == 200) {
+            this.visible2 = false;
+            this.$message.success("删除成功");
+            this.fetchData(token);
+          } else {
+            this.$message.warning(res.data.msg);
+          }
+        });
     },
     // 弹出删除模态框
-    showDelModal(id){
-      this.adminId=id
-      this.visible2=true
+    showDelModal(id) {
+      this.adminId = id;
+      this.visible2 = true;
     },
     clearForm() {
       this.form = {
@@ -230,33 +238,39 @@ export default {
         });
     },
     // 弹出添加或者编辑模态框
-    showModal(num,item) {
-      this.clearForm()
+    showModal(num, item) {
+      this.clearForm();
       this.title = num == 0 ? "管理添加" : "编辑";
       this.visible = true;
       this.adminId = num;
-      this.defaultGroup=''
+      this.defaultGroup = "";
       // console.log(item)
-      if(this.title=='编辑'){
+      if (this.title == "编辑") {
         let token = sessionStorage.getItem("token");
-        this.$http.post('/admin/admin_user/edit',{
-          id:item.id
-        },{
-          headers:{token}
-        }).then(res=>{
-          if(res.data.code==200){
-            let data=res.data.data.admin_user
-            this.defaultGroup=item.group_name;
-            this.authGroupList=res.data.data.auth_group_list;
-            this.form={
-              username:data.username,
-              password:data.password,
-              confirm_password:data.password,
-              status:data.status,
-              group_id:data.group_id
-            } 
-          }
-        })
+        this.$http
+          .post(
+            "/admin/admin_user/edit",
+            {
+              id: item.id
+            },
+            {
+              headers: { token }
+            }
+          )
+          .then(res => {
+            if (res.data.code == 200) {
+              let data = res.data.data.admin_user;
+              this.defaultGroup = item.group_name;
+              this.authGroupList = res.data.data.auth_group_list;
+              this.form = {
+                username: data.username,
+                password: data.password,
+                confirm_password: data.password,
+                status: data.status,
+                group_id: data.group_id
+              };
+            }
+          });
       }
     },
     handleOk(e) {
@@ -264,9 +278,9 @@ export default {
       let token = sessionStorage.getItem("token");
       let form = this.form;
       console.log(title);
-      if(!this.defaultGroup){
-        this.$message.warning('请选择权限组');
-        return false
+      if (!this.defaultGroup) {
+        this.$message.warning("请选择权限组");
+        return false;
       }
       let data = {
         username: form.username,
@@ -320,28 +334,30 @@ export default {
     },
 
     fetchData(token) {
+      let data = {
+        page: this.page,
+        pagesize: this.pagesize
+      };
       this.$http
-        .post(
-          "/admin/admin_user/index",
-          {
-            page:1,
-            limit:3
-          },
-          {
-            headers: {
-              token: token
-            }
+        .post("/admin/admin_user/index", data, {
+          headers: {
+            token: token
           }
-        )
+        })
         .then(res => {
           // console.log(res);
-          let list = res.data.data.admin_user_list;
-          for (let i = 0; i < list.length; i++) {
-            list[i].key = list[i].id + "";
-            list[i].status = list[i].status == 1 ? "在线" : "离线";
+          if (res.data.code == 200) {
+            this.total = res.data.data.total;
+            let list = res.data.data.admin_user_list;
+            for (let i = 0; i < list.length; i++) {
+              list[i].key = list[i].id + "";
+              list[i].status = list[i].status == 1 ? "在线" : "离线";
+            }
+            this.admin_user_list = list;
+            //console.log(this.admin_user_list)
+          } else {
+            this.$message.warning(res.data.msg);
           }
-          this.admin_user_list = list;
-          //console.log(this.admin_user_list)
         })
         .catch(err => {
           console.log(err);
@@ -369,6 +385,11 @@ export default {
         .catch(err => {
           console.log(err);
         });
+    },
+    onChange(e) {
+      this.page = e;
+      let token=sessionStorage.getItem('token');
+      this.fetchData(token);
     }
   }
 };

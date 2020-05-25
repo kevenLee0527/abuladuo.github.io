@@ -16,6 +16,16 @@
         :dataSource="data"
         size="small"
       ></a-table>
+      <div style="text-align:right;padding-top:4px;">
+       <a-pagination
+        :total="total"
+        :pageSize="pagesize"
+        :defaultCurrent="1"
+        :style="{display:'inline-block'}"
+         @change="onChange"
+      />
+      <span :style="{height:'30px',display:'inline-block',lineHeight:'30px',position:'relative',top:'-11px',padding:'0 2px'}">共{{Math.ceil(total/pagesize)}}页</span>
+      </div>
       <a-modal :title="title" v-model="visible" @ok="hideModal" okText="确认" cancelText="取消">
         <div v-if="index==0||index==2">
           <a-row :style="{marginBottom:'10px'}">
@@ -148,7 +158,10 @@ export default {
       autoExpandParent: true,
       checkedKeys: [],
       selectedKeys: [],
-      treeData
+      treeData,
+      page:1,
+      pagesize:10,
+      total:1
     };
   },
   watch: {
@@ -171,10 +184,14 @@ export default {
     //权限列表
     fetchData() {
       let token = sessionStorage.getItem("token");
+       let data = {
+        page: this.page,
+        pagesize: this.pagesize
+      };
       this.$http
         .post(
           "/admin/admin_user/authGroupList",
-          {},
+          data,
           {
             headers: {
               token: token
@@ -182,13 +199,19 @@ export default {
           }
         )
         .then(res => {
-          console.log(res)
-          let list = res.data.data.auth_group_list;
+          // console.log(res)
+          if(res.data.code==200){
+            this.total=res.data.data.total
+            let list = res.data.data.auth_group_list;
           for (let i = 0; i < list.length; i++) {
             list[i].key = list[i].id + "";
             list[i].status = list[i].status == 1 ? "已启用" : "禁止";
           }
           this.data = list;
+          }else{
+             this.$message.warning(res.data.msg);
+          }
+          
         })
         .catch(err => {
           console.log(err);
@@ -360,6 +383,10 @@ export default {
     onSelect(selectedKeys, info) {
       console.log("onSelect", info);
       this.selectedKeys = selectedKeys;
+    },
+     onChange(e) {
+      this.page = e;
+      this.fetchData();
     }
   }
 };
